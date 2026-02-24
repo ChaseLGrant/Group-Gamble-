@@ -2,6 +2,12 @@ import { redirect } from 'next/navigation';
 import AuthForm from '@/components/auth/AuthForm';
 import { BrandHeader } from '@/components/layout/Header';
 
+const FEATURES = [
+  { emoji: '🎯', title: 'Create', text: 'Set prediction lines for your group' },
+  { emoji: '💰', title: 'Wager', text: 'Bet play-money points on outcomes' },
+  { emoji: '🏆', title: 'Win', text: 'Winner takes the pot — no real money' },
+] as const;
+
 interface PageProps {
   searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }
@@ -51,13 +57,9 @@ export default async function LandingPage({ searchParams }: PageProps) {
 
           {/* How it works — premium feature cards */}
           <div className="space-y-3 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
-            {[
-              { emoji: '🎯', title: 'Create', text: 'Set prediction lines for your group' },
-              { emoji: '💰', title: 'Wager', text: 'Bet play-money points on outcomes' },
-              { emoji: '🏆', title: 'Win', text: 'Winner takes the pot — no real money' },
-            ].map((item) => (
+            {FEATURES.map((item) => (
               <div
-                key={item.emoji}
+                key={item.title}
                 className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/60 backdrop-blur-sm transition-colors hover:border-violet-500/20"
               >
                 <span className="text-2xl shrink-0">{item.emoji}</span>
