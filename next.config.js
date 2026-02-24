@@ -22,7 +22,11 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ['localhost:3000', appHost].filter(Boolean),
+      allowedOrigins: [
+        'localhost:3000',
+        appHost,
+        process.env.VERCEL_URL,
+      ].filter(Boolean),
     },
   },
 };
