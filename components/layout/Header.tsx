@@ -68,11 +68,19 @@ export default function Header({
 /** Simple branded header for the landing page */
 export function BrandHeader() {
   return (
-    <div className="flex items-center justify-center pt-12 pb-6">
+    <div className="flex items-center justify-center pt-16 pb-8">
       <div className="text-center">
-        <div className="text-4xl mb-2">🎲</div>
-        <h1 className="text-2xl font-black text-gradient">Group Gamble</h1>
-        <p className="text-zinc-500 text-sm mt-1">Play-money predictions with friends</p>
+        {/* Glowing dice icon */}
+        <div className="relative inline-block mb-4">
+          <div className="absolute inset-0 blur-2xl bg-violet-500/30 rounded-full animate-glow" />
+          <span className="relative text-5xl block animate-float">🎲</span>
+        </div>
+        <h1 className="text-3xl font-black tracking-tight text-gradient-premium animate-shimmer">
+          Group Gamble
+        </h1>
+        <p className="text-zinc-500 text-sm mt-2 tracking-wide uppercase font-medium">
+          Play-money predictions with friends
+        </p>
       </div>
     </div>
   );
