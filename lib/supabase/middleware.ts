@@ -19,6 +19,12 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Protected routes that require authentication
+  const protectedPaths = ['/app', '/g/', '/settings'];
+  const isProtected = protectedPaths.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  );
+
   try {
     const supabase = createServerClient<Database>(
       supabaseUrl,
@@ -46,12 +52,6 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // Protected routes that require authentication
-    const protectedPaths = ['/app', '/g/', '/settings'];
-    const isProtected = protectedPaths.some((path) =>
-      request.nextUrl.pathname.startsWith(path)
-    );
-
     if (isProtected && !user) {
       const loginUrl = new URL('/', request.url);
       loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname);
@@ -59,6 +59,12 @@ export async function updateSession(request: NextRequest) {
     }
   } catch (e) {
     console.error('Middleware session refresh error:', e);
+    // Redirect to login for protected routes when session refresh fails
+    if (isProtected) {
+      const loginUrl = new URL('/', request.url);
+      loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return supabaseResponse;
