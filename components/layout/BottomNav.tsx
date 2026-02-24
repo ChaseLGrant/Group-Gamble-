@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Layers, Trophy, User } from 'lucide-react';
+import { Home, Layers, Trophy, User, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavProps {
@@ -72,7 +72,7 @@ function NavLink({
 }: {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  icon: LucideIcon;
   isActive: boolean;
   match?: string;
   exactMatch?: boolean;
