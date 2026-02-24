@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import AuthForm from '@/components/auth/AuthForm';
 import { BrandHeader } from '@/components/layout/Header';
 
@@ -8,16 +7,26 @@ interface PageProps {
 }
 
 export default async function LandingPage({ searchParams }: PageProps) {
-  const supabase = await createClient();
   const params = await searchParams;
 
-  // Redirect logged-in users to app
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Redirect logged-in users to app (skip if Supabase is unavailable)
+  try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect('/app');
+    if (user) {
+      redirect('/app');
+    }
+  } catch (e: unknown) {
+    // If the error is a Next.js redirect, re-throw it so redirect works
+    if (e instanceof Error && 'digest' in e && typeof (e as any).digest === 'string' && (e as any).digest.startsWith('NEXT_REDIRECT')) {
+      throw e;
+    }
+    // Otherwise Supabase is unavailable — continue rendering the page
+    console.error('Supabase unavailable on landing page:', e);
   }
 
   return (
