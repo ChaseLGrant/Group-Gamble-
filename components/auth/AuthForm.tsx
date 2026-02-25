@@ -17,6 +17,11 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
+  // Check if Supabase environment variables are set (client-side check)
+  const supabaseConfigured =
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -74,6 +79,13 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
 
   return (
     <div className="space-y-5">
+      {/* Supabase configuration warning */}
+      {!supabaseConfigured && (
+        <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3 text-yellow-400 text-xs text-center">
+          ⚠️ Supabase is not configured. Set <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
+          <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your <code className="font-mono">.env.local</code> file.
+        </div>
+      )}
       {/* Google OAuth */}
       <Button
         variant="secondary"

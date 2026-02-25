@@ -5,10 +5,22 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { ActionResult } from '@/lib/types';
 
+/** Resolve the app URL, falling back to localhost if unset */
+function getAppUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
 /** Send a magic link to the user's email */
 export async function signInWithEmail(email: string): Promise<ActionResult> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return {
+      error:
+        'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.',
+    };
+  }
+
   const supabase = await createClient();
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+  const redirectTo = `${getAppUrl()}/auth/callback`;
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -18,6 +30,7 @@ export async function signInWithEmail(email: string): Promise<ActionResult> {
   });
 
   if (error) {
+    console.error('signInWithEmail error:', error.message);
     return { error: error.message };
   }
 
@@ -26,8 +39,15 @@ export async function signInWithEmail(email: string): Promise<ActionResult> {
 
 /** Sign in with Google OAuth */
 export async function signInWithGoogle(): Promise<ActionResult<{ url: string }>> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return {
+      error:
+        'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.',
+    };
+  }
+
   const supabase = await createClient();
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+  const redirectTo = `${getAppUrl()}/auth/callback`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -37,6 +57,7 @@ export async function signInWithGoogle(): Promise<ActionResult<{ url: string }>>
   });
 
   if (error) {
+    console.error('signInWithGoogle error:', error.message);
     return { error: error.message };
   }
 
