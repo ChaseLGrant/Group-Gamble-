@@ -8,6 +8,10 @@ import type { Database } from '@/lib/database.types';
  * Uses the anon key and respects RLS policies.
  */
 export async function createClient() {
+  // Call cookies() first so Next.js detects this as a dynamic function
+  // and skips static prerendering (avoids build-time errors when env vars are unset).
+  const cookieStore = await cookies();
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -16,8 +20,6 @@ export async function createClient() {
       'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.'
     );
   }
-
-  const cookieStore = await cookies();
 
   return createServerClient<Database>(
     supabaseUrl,
