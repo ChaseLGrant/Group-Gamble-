@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { type EmailOtpType } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Auth callback route — handles:
@@ -75,7 +76,9 @@ export async function GET(request: NextRequest) {
             user.user_metadata?.name ??
             user.email?.split('@')[0] ??
             'User';
-          await supabase.from('profiles').upsert({
+          // Use admin client to bypass RLS for reliable profile creation
+          const admin = createAdminClient();
+          await admin.from('profiles').upsert({
             id: user.id,
             display_name: fallbackName,
             avatar_url: user.user_metadata?.avatar_url ?? null,
