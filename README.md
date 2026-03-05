@@ -53,15 +53,20 @@ npm install
 2. Note your **Project URL**, **anon key**, and **service_role key**
    (Project Settings → API)
 
-### 3. Run Database Migration
+### 3. Set Up the Database
 
-In your Supabase dashboard → **SQL Editor** → paste and run:
+Your Supabase project starts with an empty database — you need to create the tables, functions, and security policies by running a single SQL script.
 
-```
-supabase/migrations/001_initial_schema.sql
-```
+1. Open your Supabase project dashboard at [supabase.com/dashboard](https://supabase.com/dashboard)
+2. Click **SQL Editor** in the left sidebar
+3. Click **+ New query** (top-left)
+4. Open the file **`supabase/setup.sql`** from this repo, copy the **entire** contents, and paste it into the editor
+5. Click **Run** (or press `Cmd/Ctrl + Enter`)
+6. You should see **"Success. No rows returned"** — that means it worked!
 
-This creates all tables, RLS policies, indexes, and helper functions.
+> **What this creates:** 7 tables (`profiles`, `groups`, `group_members`, `group_balances`, `predictions`, `wagers`, `transactions`), helper functions, Row Level Security policies, indexes, and realtime subscriptions. See [Database Schema](#database-schema) below for details.
+
+> **Tip:** The `setup.sql` script is safe to re-run — it uses `IF NOT EXISTS` and `DROP … IF EXISTS` so it won't fail if you run it again.
 
 ### 4. Configure Auth
 
@@ -104,7 +109,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ### Step 1: Create Supabase Project (Production)
 
 1. Create a new Supabase project (or use the same one)
-2. Run `supabase/migrations/001_initial_schema.sql` in SQL Editor
+2. Run `supabase/setup.sql` in the SQL Editor (same steps as local setup — see [Step 3](#3-set-up-the-database))
 3. Configure Auth redirect URLs (see Step 4 below)
 
 ### Step 2: Deploy to Vercel
