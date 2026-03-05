@@ -60,13 +60,29 @@ Your Supabase project starts with an empty database — you need to create the t
 1. Open your Supabase project dashboard at [supabase.com/dashboard](https://supabase.com/dashboard)
 2. Click **SQL Editor** in the left sidebar
 3. Click **+ New query** (top-left)
-4. Open the file **`supabase/setup.sql`** from this repo, copy the **entire** contents, and paste it into the editor
+4. Open the file **`supabase/migrations/001_initial_schema.sql`** from this repo, copy the **entire** contents, and paste it into the editor
 5. Click **Run** (or press `Cmd/Ctrl + Enter`)
 6. You should see **"Success. No rows returned"** — that means it worked!
 
 > **What this creates:** 7 tables (`profiles`, `groups`, `group_members`, `group_balances`, `predictions`, `wagers`, `transactions`), helper functions, Row Level Security policies, indexes, and realtime subscriptions. See [Database Schema](#database-schema) below for details.
 
-> **Tip:** The `setup.sql` script is safe to re-run — it uses `IF NOT EXISTS` and `DROP … IF EXISTS` so it won't fail if you run it again.
+> **Tip:** The script is safe to re-run — it uses `IF NOT EXISTS` and `DROP … IF EXISTS` so it won't fail if you run it again.
+
+#### Verify Your Database
+
+After running the script, confirm the tables were created:
+
+1. Click **Table Editor** in the left sidebar of your Supabase dashboard
+2. You should see all 7 tables listed: `profiles`, `groups`, `group_members`, `group_balances`, `predictions`, `wagers`, `transactions`
+
+Or run this quick check in the **SQL Editor**:
+
+```sql
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public' ORDER BY table_name;
+```
+
+You should see 7 rows returned.
 
 ### 4. Configure Auth
 
@@ -109,7 +125,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ### Step 1: Create Supabase Project (Production)
 
 1. Create a new Supabase project (or use the same one)
-2. Run `supabase/setup.sql` in the SQL Editor (same steps as local setup — see [Step 3](#3-set-up-the-database))
+2. Run `supabase/migrations/001_initial_schema.sql` in the SQL Editor (same steps as local setup — see [Step 3](#3-set-up-the-database))
 3. Configure Auth redirect URLs (see Step 4 below)
 
 ### Step 2: Deploy to Vercel
