@@ -1,6 +1,27 @@
 -- ============================================================
--- Group Gamble - Initial Schema
--- Run this in your Supabase SQL Editor
+-- Group Gamble — Complete Database Setup
+-- ============================================================
+--
+-- HOW TO USE (Supabase Dashboard):
+--
+--   1. Go to https://supabase.com/dashboard and open your project
+--   2. Click "SQL Editor" in the left sidebar
+--   3. Click "+ New query"
+--   4. Paste this ENTIRE file into the editor
+--   5. Click "Run" (or Cmd/Ctrl + Enter)
+--   6. You should see "Success. No rows returned" — that means it worked!
+--
+-- HOW TO VERIFY IT WORKED:
+--
+--   • Click "Table Editor" in the left sidebar — you should see 7 tables:
+--     profiles, groups, group_members, group_balances, predictions,
+--     wagers, transactions
+--   • Or run this query in SQL Editor:
+--     SELECT table_name FROM information_schema.tables
+--     WHERE table_schema = 'public' ORDER BY table_name;
+--
+-- This script is safe to re-run (uses IF NOT EXISTS / DROP IF EXISTS).
+--
 -- ============================================================
 
 -- Enable required extensions
@@ -12,7 +33,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================
 
 -- Profiles: one per auth.users row
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL,
   avatar_url   TEXT,
@@ -20,7 +41,7 @@ CREATE TABLE profiles (
 );
 
 -- Groups
-CREATE TABLE groups (
+CREATE TABLE IF NOT EXISTS groups (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name        TEXT NOT NULL,
   emoji       TEXT NOT NULL DEFAULT '🎲',
@@ -30,7 +51,7 @@ CREATE TABLE groups (
 );
 
 -- Group membership
-CREATE TABLE group_members (
+CREATE TABLE IF NOT EXISTS group_members (
   id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id  UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   user_id   UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -41,7 +62,7 @@ CREATE TABLE group_members (
 );
 
 -- Per-group point balances (each member starts with 1000 points)
-CREATE TABLE group_balances (
+CREATE TABLE IF NOT EXISTS group_balances (
   id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id       UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   user_id        UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -51,7 +72,7 @@ CREATE TABLE group_balances (
 );
 
 -- Predictions (markets)
-CREATE TABLE predictions (
+CREATE TABLE IF NOT EXISTS predictions (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id     UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   created_by   UUID NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
@@ -71,7 +92,7 @@ CREATE TABLE predictions (
 );
 
 -- Wagers / picks
-CREATE TABLE wagers (
+CREATE TABLE IF NOT EXISTS wagers (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   prediction_id UUID NOT NULL REFERENCES predictions(id) ON DELETE CASCADE,
   group_id      UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -84,7 +105,7 @@ CREATE TABLE wagers (
 );
 
 -- Transaction ledger (audit trail)
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id      UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   user_id       UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -99,18 +120,18 @@ CREATE TABLE transactions (
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_group_members_group_id   ON group_members(group_id);
-CREATE INDEX idx_group_members_user_id    ON group_members(user_id);
-CREATE INDEX idx_group_balances_group_id  ON group_balances(group_id);
-CREATE INDEX idx_group_balances_user_id   ON group_balances(user_id);
-CREATE INDEX idx_predictions_group_id     ON predictions(group_id);
-CREATE INDEX idx_predictions_status       ON predictions(status);
-CREATE INDEX idx_predictions_created_at   ON predictions(created_at DESC);
-CREATE INDEX idx_wagers_prediction_id     ON wagers(prediction_id);
-CREATE INDEX idx_wagers_user_id           ON wagers(user_id);
-CREATE INDEX idx_transactions_group_id    ON transactions(group_id);
-CREATE INDEX idx_transactions_user_id     ON transactions(user_id);
-CREATE INDEX idx_transactions_prediction_id ON transactions(prediction_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_group_id   ON group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_user_id    ON group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_group_balances_group_id  ON group_balances(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_balances_user_id   ON group_balances(user_id);
+CREATE INDEX IF NOT EXISTS idx_predictions_group_id     ON predictions(group_id);
+CREATE INDEX IF NOT EXISTS idx_predictions_status       ON predictions(status);
+CREATE INDEX IF NOT EXISTS idx_predictions_created_at   ON predictions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wagers_prediction_id     ON wagers(prediction_id);
+CREATE INDEX IF NOT EXISTS idx_wagers_user_id           ON wagers(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_group_id    ON transactions(group_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id     ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_prediction_id ON transactions(prediction_id);
 
 -- ============================================================
 -- HELPER FUNCTIONS (SECURITY DEFINER = run as function owner)
@@ -197,6 +218,8 @@ BEGIN
 END;
 $$;
 
+-- Create trigger (drop first to make this script re-runnable)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -215,6 +238,11 @@ ALTER TABLE wagers          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions    ENABLE ROW LEVEL SECURITY;
 
 -- ---------- profiles ----------
+
+-- Drop existing policies to make re-runs safe
+DROP POLICY IF EXISTS "profiles_select" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 
 -- Users can view their own profile and profiles of people in shared groups
 CREATE POLICY "profiles_select"
@@ -240,6 +268,9 @@ CREATE POLICY "profiles_update_own"
 
 -- ---------- groups ----------
 
+DROP POLICY IF EXISTS "groups_select_members" ON groups;
+DROP POLICY IF EXISTS "groups_update_owner" ON groups;
+
 CREATE POLICY "groups_select_members"
   ON groups FOR SELECT
   USING (is_group_member(id));
@@ -251,6 +282,9 @@ CREATE POLICY "groups_update_owner"
 -- INSERT is handled by the createGroup server action (service role bypasses RLS)
 
 -- ---------- group_members ----------
+
+DROP POLICY IF EXISTS "group_members_select" ON group_members;
+DROP POLICY IF EXISTS "group_members_delete_admin" ON group_members;
 
 CREATE POLICY "group_members_select"
   ON group_members FOR SELECT
@@ -265,6 +299,8 @@ CREATE POLICY "group_members_delete_admin"
 
 -- ---------- group_balances ----------
 
+DROP POLICY IF EXISTS "group_balances_select" ON group_balances;
+
 -- Users can see their own balance; admins can see all in the group (for leaderboard)
 CREATE POLICY "group_balances_select"
   ON group_balances FOR SELECT
@@ -273,6 +309,10 @@ CREATE POLICY "group_balances_select"
 -- UPDATE is handled by server actions (service role via update_balance function)
 
 -- ---------- predictions ----------
+
+DROP POLICY IF EXISTS "predictions_select" ON predictions;
+DROP POLICY IF EXISTS "predictions_insert" ON predictions;
+DROP POLICY IF EXISTS "predictions_update_admin" ON predictions;
 
 CREATE POLICY "predictions_select"
   ON predictions FOR SELECT
@@ -288,6 +328,10 @@ CREATE POLICY "predictions_update_admin"
   USING (is_group_admin(group_id));
 
 -- ---------- wagers ----------
+
+DROP POLICY IF EXISTS "wagers_select" ON wagers;
+DROP POLICY IF EXISTS "wagers_insert_own" ON wagers;
+DROP POLICY IF EXISTS "wagers_update_own" ON wagers;
 
 CREATE POLICY "wagers_select"
   ON wagers FOR SELECT
@@ -306,6 +350,8 @@ CREATE POLICY "wagers_update_own"
 
 -- ---------- transactions ----------
 
+DROP POLICY IF EXISTS "transactions_select" ON transactions;
+
 CREATE POLICY "transactions_select"
   ON transactions FOR SELECT
   USING (user_id = auth.uid() OR is_group_admin(group_id));
@@ -317,14 +363,47 @@ CREATE POLICY "transactions_select"
 -- Enable realtime for the tables the UI subscribes to
 -- ============================================================
 
-ALTER PUBLICATION supabase_realtime ADD TABLE predictions;
-ALTER PUBLICATION supabase_realtime ADD TABLE wagers;
-ALTER PUBLICATION supabase_realtime ADD TABLE group_balances;
-ALTER PUBLICATION supabase_realtime ADD TABLE group_members;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE predictions;
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE wagers;
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE group_balances;
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE group_members;
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
 
 -- ============================================================
--- OPTIONAL: Demo seed data
--- Uncomment and run separately after creating real Supabase auth users
+-- ✅ DONE! Your database is ready.
+--
+-- To verify, click "Table Editor" in the Supabase sidebar.
+-- You should see these 7 tables:
+--   profiles, groups, group_members, group_balances,
+--   predictions, wagers, transactions
+--
+-- Next steps:
+--   1. Go to Authentication → URL Configuration and set:
+--        Site URL:       http://localhost:3000
+--        Redirect URLs:  http://localhost:3000/auth/callback
+--   2. Set your environment variables (see .env.local.example)
+--   3. Run: npm run dev
+--   4. Sign in and create your first group!
 -- ============================================================
-
--- See /supabase/seed.sql for demo data setup instructions
