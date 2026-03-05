@@ -55,11 +55,15 @@ npm install
 
 ### 3. Run Database Migration
 
-In your Supabase dashboard → **SQL Editor** → paste and run:
+In your Supabase dashboard → **SQL Editor** → paste the **entire** contents of:
 
 ```
-supabase/migrations/001_initial_schema.sql
+supabase/migrations/20250101000000_initial_schema.sql
 ```
+
+> **Note:** This migration is safe to re-run. Every statement uses
+> `IF NOT EXISTS`, `CREATE OR REPLACE`, or `DROP … IF EXISTS` guards,
+> so running it again on an existing database will not cause errors.
 
 This creates all tables, RLS policies, indexes, and helper functions.
 
@@ -104,7 +108,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ### Step 1: Create Supabase Project (Production)
 
 1. Create a new Supabase project (or use the same one)
-2. Run `supabase/migrations/001_initial_schema.sql` in SQL Editor
+2. Run `supabase/migrations/20250101000000_initial_schema.sql` in SQL Editor (safe to re-run)
 3. Configure Auth redirect URLs (see Step 4 below)
 
 ### Step 2: Deploy to Vercel

@@ -1,6 +1,8 @@
 -- ============================================================
 -- Group Gamble - Initial Schema
--- Run this in your Supabase SQL Editor
+-- Safe to re-run: all statements are idempotent (IF NOT EXISTS,
+-- CREATE OR REPLACE, DROP … IF EXISTS guards).
+-- Run this in your Supabase SQL Editor (paste the FULL file).
 -- ============================================================
 
 -- Enable required extensions
