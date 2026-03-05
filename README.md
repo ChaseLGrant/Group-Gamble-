@@ -62,7 +62,7 @@ supabase/migrations/20250101000000_initial_schema.sql
 ```
 
 > **Note:** This migration is safe to re-run. Every statement uses
-> `IF NOT EXISTS`, `CREATE OR REPLACE`, or `DROP … IF EXISTS` guards,
+> `IF NOT EXISTS`, `CREATE OR REPLACE`, or `DROP ... IF EXISTS` guards,
 > so running it again on an existing database will not cause errors.
 
 This creates all tables, RLS policies, indexes, and helper functions.
