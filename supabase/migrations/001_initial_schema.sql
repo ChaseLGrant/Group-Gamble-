@@ -120,9 +120,10 @@ CREATE INDEX idx_transactions_prediction_id ON transactions(prediction_id);
 CREATE OR REPLACE FUNCTION is_group_member(p_group_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql SECURITY DEFINER STABLE
+SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM group_members
+    SELECT 1 FROM public.group_members
     WHERE group_id = p_group_id
       AND user_id  = auth.uid()
   );
@@ -132,9 +133,10 @@ $$;
 CREATE OR REPLACE FUNCTION is_group_admin(p_group_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql SECURITY DEFINER STABLE
+SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM group_members
+    SELECT 1 FROM public.group_members
     WHERE group_id = p_group_id
       AND user_id  = auth.uid()
       AND role IN ('owner', 'moderator')
@@ -150,12 +152,13 @@ CREATE OR REPLACE FUNCTION update_balance(
 )
 RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_current INT;
 BEGIN
   SELECT balance_points INTO v_current
-    FROM group_balances
+    FROM public.group_balances
    WHERE group_id = p_group_id
      AND user_id  = p_user_id
    FOR UPDATE;
@@ -168,7 +171,7 @@ BEGIN
     RAISE EXCEPTION 'insufficient_balance';
   END IF;
 
-  UPDATE group_balances
+  UPDATE public.group_balances
      SET balance_points = v_current + p_delta,
          updated_at     = NOW()
    WHERE group_id = p_group_id
@@ -180,20 +183,26 @@ $$;
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO profiles (id, display_name, avatar_url)
+  INSERT INTO public.profiles (id, display_name, avatar_url)
   VALUES (
     NEW.id,
     COALESCE(
       NEW.raw_user_meta_data->>'full_name',
       NEW.raw_user_meta_data->>'name',
-      split_part(NEW.email, '@', 1)
+      split_part(NEW.email, '@', 1),
+      'User'
     ),
     NEW.raw_user_meta_data->>'avatar_url'
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE LOG 'handle_new_user failed for %: %', NEW.id, SQLERRM;
+    RETURN NEW;
 END;
 $$;
 
