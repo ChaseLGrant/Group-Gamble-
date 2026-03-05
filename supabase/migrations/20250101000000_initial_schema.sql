@@ -1,6 +1,8 @@
 -- ============================================================
 -- Group Gamble - Initial Schema
--- Run this in your Supabase SQL Editor
+-- Safe to re-run: all statements are idempotent (IF NOT EXISTS,
+-- CREATE OR REPLACE, DROP ... IF EXISTS guards).
+-- Run this in your Supabase SQL Editor (paste the FULL file).
 -- ============================================================
 
 -- Enable required extensions
@@ -12,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================
 
 -- Profiles: one per auth.users row
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL,
   avatar_url   TEXT,
@@ -20,7 +22,7 @@ CREATE TABLE profiles (
 );
 
 -- Groups
-CREATE TABLE groups (
+CREATE TABLE IF NOT EXISTS groups (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name        TEXT NOT NULL,
   emoji       TEXT NOT NULL DEFAULT '🎲',
@@ -30,7 +32,7 @@ CREATE TABLE groups (
 );
 
 -- Group membership
-CREATE TABLE group_members (
+CREATE TABLE IF NOT EXISTS group_members (
   id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id  UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   user_id   UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -41,7 +43,7 @@ CREATE TABLE group_members (
 );
 
 -- Per-group point balances (each member starts with 1000 points)
-CREATE TABLE group_balances (
+CREATE TABLE IF NOT EXISTS group_balances (
   id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id       UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   user_id        UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -51,7 +53,7 @@ CREATE TABLE group_balances (
 );
 
 -- Predictions (markets)
-CREATE TABLE predictions (
+CREATE TABLE IF NOT EXISTS predictions (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id     UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   created_by   UUID NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
@@ -71,7 +73,7 @@ CREATE TABLE predictions (
 );
 
 -- Wagers / picks
-CREATE TABLE wagers (
+CREATE TABLE IF NOT EXISTS wagers (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   prediction_id UUID NOT NULL REFERENCES predictions(id) ON DELETE CASCADE,
   group_id      UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -84,7 +86,7 @@ CREATE TABLE wagers (
 );
 
 -- Transaction ledger (audit trail)
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   group_id      UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   user_id       UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -99,18 +101,18 @@ CREATE TABLE transactions (
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_group_members_group_id   ON group_members(group_id);
-CREATE INDEX idx_group_members_user_id    ON group_members(user_id);
-CREATE INDEX idx_group_balances_group_id  ON group_balances(group_id);
-CREATE INDEX idx_group_balances_user_id   ON group_balances(user_id);
-CREATE INDEX idx_predictions_group_id     ON predictions(group_id);
-CREATE INDEX idx_predictions_status       ON predictions(status);
-CREATE INDEX idx_predictions_created_at   ON predictions(created_at DESC);
-CREATE INDEX idx_wagers_prediction_id     ON wagers(prediction_id);
-CREATE INDEX idx_wagers_user_id           ON wagers(user_id);
-CREATE INDEX idx_transactions_group_id    ON transactions(group_id);
-CREATE INDEX idx_transactions_user_id     ON transactions(user_id);
-CREATE INDEX idx_transactions_prediction_id ON transactions(prediction_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_group_id   ON group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_user_id    ON group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_group_balances_group_id  ON group_balances(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_balances_user_id   ON group_balances(user_id);
+CREATE INDEX IF NOT EXISTS idx_predictions_group_id     ON predictions(group_id);
+CREATE INDEX IF NOT EXISTS idx_predictions_status       ON predictions(status);
+CREATE INDEX IF NOT EXISTS idx_predictions_created_at   ON predictions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wagers_prediction_id     ON wagers(prediction_id);
+CREATE INDEX IF NOT EXISTS idx_wagers_user_id           ON wagers(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_group_id    ON transactions(group_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id     ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_prediction_id ON transactions(prediction_id);
 
 -- ============================================================
 -- HELPER FUNCTIONS (SECURITY DEFINER = run as function owner)
@@ -197,6 +199,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -217,6 +220,7 @@ ALTER TABLE transactions    ENABLE ROW LEVEL SECURITY;
 -- ---------- profiles ----------
 
 -- Users can view their own profile and profiles of people in shared groups
+DROP POLICY IF EXISTS "profiles_select" ON profiles;
 CREATE POLICY "profiles_select"
   ON profiles FOR SELECT
   USING (
@@ -230,20 +234,24 @@ CREATE POLICY "profiles_select"
     )
   );
 
+DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
 CREATE POLICY "profiles_insert_own"
   ON profiles FOR INSERT
   WITH CHECK (id = auth.uid());
 
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 CREATE POLICY "profiles_update_own"
   ON profiles FOR UPDATE
   USING (id = auth.uid());
 
 -- ---------- groups ----------
 
+DROP POLICY IF EXISTS "groups_select_members" ON groups;
 CREATE POLICY "groups_select_members"
   ON groups FOR SELECT
   USING (is_group_member(id));
 
+DROP POLICY IF EXISTS "groups_update_owner" ON groups;
 CREATE POLICY "groups_update_owner"
   ON groups FOR UPDATE
   USING (owner_id = auth.uid());
@@ -252,11 +260,13 @@ CREATE POLICY "groups_update_owner"
 
 -- ---------- group_members ----------
 
+DROP POLICY IF EXISTS "group_members_select" ON group_members;
 CREATE POLICY "group_members_select"
   ON group_members FOR SELECT
   USING (is_group_member(group_id));
 
 -- Owner / moderator can remove other members (not themselves)
+DROP POLICY IF EXISTS "group_members_delete_admin" ON group_members;
 CREATE POLICY "group_members_delete_admin"
   ON group_members FOR DELETE
   USING (is_group_admin(group_id) AND user_id != auth.uid());
@@ -266,6 +276,7 @@ CREATE POLICY "group_members_delete_admin"
 -- ---------- group_balances ----------
 
 -- Users can see their own balance; admins can see all in the group (for leaderboard)
+DROP POLICY IF EXISTS "group_balances_select" ON group_balances;
 CREATE POLICY "group_balances_select"
   ON group_balances FOR SELECT
   USING (user_id = auth.uid() OR is_group_admin(group_id) OR is_group_member(group_id));
@@ -274,21 +285,25 @@ CREATE POLICY "group_balances_select"
 
 -- ---------- predictions ----------
 
+DROP POLICY IF EXISTS "predictions_select" ON predictions;
 CREATE POLICY "predictions_select"
   ON predictions FOR SELECT
   USING (is_group_member(group_id));
 
+DROP POLICY IF EXISTS "predictions_insert" ON predictions;
 CREATE POLICY "predictions_insert"
   ON predictions FOR INSERT
   WITH CHECK (is_group_member(group_id) AND created_by = auth.uid());
 
 -- Only admins can update (lock, settle, cancel)
+DROP POLICY IF EXISTS "predictions_update_admin" ON predictions;
 CREATE POLICY "predictions_update_admin"
   ON predictions FOR UPDATE
   USING (is_group_admin(group_id));
 
 -- ---------- wagers ----------
 
+DROP POLICY IF EXISTS "wagers_select" ON wagers;
 CREATE POLICY "wagers_select"
   ON wagers FOR SELECT
   USING (is_group_member(group_id));
@@ -296,16 +311,19 @@ CREATE POLICY "wagers_select"
 -- INSERT/UPDATE are handled by server actions (service role)
 -- We define these client-side policies but the real enforcement is server-side
 
+DROP POLICY IF EXISTS "wagers_insert_own" ON wagers;
 CREATE POLICY "wagers_insert_own"
   ON wagers FOR INSERT
   WITH CHECK (user_id = auth.uid() AND is_group_member(group_id));
 
+DROP POLICY IF EXISTS "wagers_update_own" ON wagers;
 CREATE POLICY "wagers_update_own"
   ON wagers FOR UPDATE
   USING (user_id = auth.uid());
 
 -- ---------- transactions ----------
 
+DROP POLICY IF EXISTS "transactions_select" ON transactions;
 CREATE POLICY "transactions_select"
   ON transactions FOR SELECT
   USING (user_id = auth.uid() OR is_group_admin(group_id));
@@ -317,10 +335,26 @@ CREATE POLICY "transactions_select"
 -- Enable realtime for the tables the UI subscribes to
 -- ============================================================
 
-ALTER PUBLICATION supabase_realtime ADD TABLE predictions;
-ALTER PUBLICATION supabase_realtime ADD TABLE wagers;
-ALTER PUBLICATION supabase_realtime ADD TABLE group_balances;
-ALTER PUBLICATION supabase_realtime ADD TABLE group_members;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE predictions;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE wagers;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE group_balances;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE group_members;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================
 -- OPTIONAL: Demo seed data
