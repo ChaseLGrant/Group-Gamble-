@@ -1,20 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, ArrowRight } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import { signInWithEmail, signInWithGoogle } from '@/lib/actions/auth';
+import { signInWithGoogle } from '@/lib/actions/auth';
 
 interface AuthFormProps {
   redirectTo?: string;
 }
 
 export default function AuthForm({ redirectTo }: AuthFormProps) {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
   // Check if Supabase environment variables are set (client-side check)
@@ -22,32 +17,9 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
     !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
     !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  async function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-
-    if (!email.trim()) {
-      setError('Please enter your email address');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await signInWithEmail(email.trim().toLowerCase());
-      if (result.error) {
-        setError(result.error);
-      } else {
-        setSent(true);
-      }
-    } catch {
-      setError('Unable to reach the server. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleGoogle() {
     setGoogleLoading(true);
+    setError('');
     try {
       const result = await signInWithGoogle();
       if (result.data?.url) {
@@ -62,32 +34,8 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
     }
   }
 
-  if (sent) {
-    return (
-      <div className="text-center space-y-4 animate-fade-in">
-        <div className="text-5xl">📬</div>
-        <div>
-          <h2 className="text-xl font-bold text-zinc-100">Check your email</h2>
-          <p className="text-zinc-400 mt-1 text-sm">
-            We sent a magic link to{' '}
-            <span className="text-violet-400 font-medium">{email}</span>
-          </p>
-        </div>
-        <p className="text-xs text-zinc-600">
-          Link expires in 1 hour. Check your spam folder if you don&apos;t see it.
-        </p>
-        <button
-          onClick={() => { setSent(false); setEmail(''); }}
-          className="text-sm text-zinc-500 underline underline-offset-2"
-        >
-          Use a different email
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Supabase configuration warning */}
       {!supabaseConfigured && (
         <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3 text-yellow-400 text-xs text-center">
@@ -95,12 +43,20 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
           <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your <code className="font-mono">.env.local</code> file.
         </div>
       )}
+
+      {error && (
+        <div className="bg-red-900/20 border border-red-800 rounded-xl p-3 text-red-400 text-sm text-center">
+          {error}
+        </div>
+      )}
+
       {/* Google OAuth */}
       <Button
         variant="secondary"
         fullWidth
         onClick={handleGoogle}
         loading={googleLoading}
+        size="lg"
         className="border border-zinc-700"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -123,37 +79,6 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
         </svg>
         Continue with Google
       </Button>
-
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-zinc-800" />
-        <span className="text-xs text-zinc-600">or</span>
-        <div className="flex-1 h-px bg-zinc-800" />
-      </div>
-
-      {/* Magic link form */}
-      <form onSubmit={handleEmailSubmit} className="space-y-4">
-        <Input
-          label="Email address"
-          type="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          leftAddon={<Mail size={16} />}
-          error={error}
-          autoCapitalize="none"
-          autoComplete="email"
-          autoCorrect="off"
-          inputMode="email"
-        />
-        <Button type="submit" fullWidth loading={loading} size="lg">
-          Send magic link
-          <ArrowRight size={18} />
-        </Button>
-      </form>
-
-      <p className="text-xs text-center text-zinc-600">
-        No password needed. We&apos;ll email you a sign-in link.
-      </p>
     </div>
   );
 }
