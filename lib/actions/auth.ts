@@ -5,9 +5,11 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { ActionResult } from '@/lib/types';
 
-/** Resolve the app URL, falling back to localhost if unset */
+/** Resolve the app URL, falling back to Vercel env vars then localhost */
 function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
 }
 
 /** Send a magic link to the user's email */
