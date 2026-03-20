@@ -26,6 +26,8 @@ const nextConfig = {
         'localhost:3000',
         appHost,
         process.env.VERCEL_URL,
+        process.env.VERCEL_BRANCH_URL,
+        process.env.VERCEL_PROJECT_PRODUCTION_URL,
       ].filter(Boolean),
     },
   },
