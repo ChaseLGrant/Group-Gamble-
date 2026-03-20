@@ -53,12 +53,12 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
       const result = await signInWithGoogle();
       if (result.data?.url) {
         window.location.href = result.data.url;
-      } else {
-        setError(result.error ?? 'Failed to start Google sign-in');
-        setGoogleLoading(false);
+        return;
       }
+      setError(result.error ?? 'Failed to start Google sign-in');
     } catch {
       setError('Something went wrong. Please try again.');
+    } finally {
       setGoogleLoading(false);
     }
   }
