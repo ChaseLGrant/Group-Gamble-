@@ -1,4 +1,4 @@
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import CreatePredictionForm from '@/components/predictions/CreatePredictionForm';
 import Header from '@/components/layout/Header';
@@ -9,29 +9,19 @@ interface PageProps {
 
 export default async function NewPredictionPage({ params }: PageProps) {
   const { groupId } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect('/');
-
-  // Verify membership
-  const { data: member } = await supabase
-    .from('group_members')
-    .select('id')
-    .eq('group_id', groupId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (!member) notFound();
-
-  const { data: group } = await supabase
-    .from('groups')
-    .select('name, emoji')
-    .eq('id', groupId)
-    .single();
+  let group: { name: string; emoji: string } | null = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('groups')
+      .select('name, emoji')
+      .eq('id', groupId)
+      .single();
+    group = data;
+  } catch {
+    // Continue without group data
+  }
 
   return (
     <div className="flex flex-col min-h-screen">

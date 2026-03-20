@@ -1,4 +1,4 @@
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getPrediction } from '@/lib/actions/predictions';
 import { getMyBalance } from '@/lib/actions/wagers';
@@ -12,23 +12,26 @@ interface PageProps {
 
 export default async function PredictionDetailPage({ params }: PageProps) {
   const { groupId, predictionId } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  let member: { role: string } | null = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
 
-  if (!user) redirect('/');
-
-  // Verify group membership
-  const { data: member } = await supabase
-    .from('group_members')
-    .select('role')
-    .eq('group_id', groupId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (!member) notFound();
+    if (user) {
+      const { data: memberData } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .single();
+      member = memberData;
+    }
+  } catch {
+    // Continue without auth
+  }
 
   const [prediction, balance] = await Promise.all([
     getPrediction(predictionId),
@@ -37,8 +40,8 @@ export default async function PredictionDetailPage({ params }: PageProps) {
 
   if (!prediction || prediction.group_id !== groupId) notFound();
 
-  const isAdmin = ['owner', 'moderator'].includes(member.role);
-  const myWager = prediction.wagers?.find((w: any) => w.user_id === user.id) ?? null;
+  const isAdmin = member ? ['owner', 'moderator'].includes(member.role) : false;
+  const myWager = user ? (prediction.wagers?.find((w: any) => w.user_id === user.id) ?? null) : null;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -51,7 +54,7 @@ export default async function PredictionDetailPage({ params }: PageProps) {
         <PredictionDetailView
           prediction={prediction}
           groupId={groupId}
-          currentUserId={user.id}
+          currentUserId={user?.id ?? ''}
           isAdmin={isAdmin}
           myWager={myWager}
           balance={balance ?? 0}

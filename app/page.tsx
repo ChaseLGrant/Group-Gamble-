@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
-import AuthForm from '@/components/auth/AuthForm';
+import Link from 'next/link';
 import { BrandHeader } from '@/components/layout/Header';
 
 const FEATURES = [
@@ -8,33 +7,7 @@ const FEATURES = [
   { emoji: '🏆', title: 'Win', text: 'Winner takes the pot — no real money' },
 ] as const;
 
-interface PageProps {
-  searchParams: Promise<{ error?: string; redirectTo?: string }>;
-}
-
-export default async function LandingPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-
-  // Redirect logged-in users to app (skip if Supabase is unavailable)
-  try {
-    const { createClient } = await import('@/lib/supabase/server');
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      redirect('/app');
-    }
-  } catch (e: unknown) {
-    // If the error is a Next.js redirect, re-throw it so redirect works
-    if (e instanceof Error && 'digest' in e && typeof (e as any).digest === 'string' && (e as any).digest.startsWith('NEXT_REDIRECT')) {
-      throw e;
-    }
-    // Otherwise Supabase is unavailable — continue rendering the page
-    console.error('Supabase unavailable on landing page:', e);
-  }
-
+export default function LandingPage() {
   return (
     <main className="flex flex-col min-h-screen px-6 relative overflow-hidden">
       {/* Ambient background orbs */}
@@ -48,13 +21,6 @@ export default async function LandingPage({ searchParams }: PageProps) {
         <BrandHeader />
 
         <div className="flex-1 flex flex-col justify-center gap-8 pb-12">
-          {/* Error banner */}
-          {params.error && (
-            <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 text-red-400 text-sm text-center">
-              {decodeURIComponent(params.error)}
-            </div>
-          )}
-
           {/* How it works — premium feature cards */}
           <div className="space-y-3 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
             {FEATURES.map((item) => (
@@ -71,12 +37,17 @@ export default async function LandingPage({ searchParams }: PageProps) {
             ))}
           </div>
 
-          {/* Auth — premium card */}
+          {/* Get Started — premium card */}
           <div className="card-premium p-6 animate-hero-slide-up [animation-delay:0.4s] opacity-0">
             <h2 className="text-lg font-bold mb-5 text-center text-zinc-100">
               Jump in — it&apos;s free
             </h2>
-            <AuthForm redirectTo={params.redirectTo} />
+            <Link
+              href="/app"
+              className="inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 select-none bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/30 h-14 px-6 text-lg gap-2 w-full"
+            >
+              Get Started
+            </Link>
           </div>
 
           {/* Trust indicator */}
