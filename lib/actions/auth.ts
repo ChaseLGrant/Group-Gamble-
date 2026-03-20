@@ -19,22 +19,30 @@ export async function signInWithEmail(email: string): Promise<ActionResult> {
     };
   }
 
-  const supabase = await createClient();
-  const redirectTo = `${getAppUrl()}/auth/callback`;
+  try {
+    const supabase = await createClient();
+    const redirectTo = `${getAppUrl()}/auth/callback`;
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: redirectTo,
-    },
-  });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
 
-  if (error) {
-    console.error('signInWithEmail error:', error.message);
-    return { error: error.message };
+    if (error) {
+      console.error('signInWithEmail error:', error.message);
+      return { error: error.message };
+    }
+
+    return {};
+  } catch (e) {
+    console.error('signInWithEmail unexpected error:', e);
+    return {
+      error:
+        'Unable to reach the authentication server. Please check your connection and try again.',
+    };
   }
-
-  return {};
 }
 
 /** Sign in with Google OAuth */
@@ -46,22 +54,30 @@ export async function signInWithGoogle(): Promise<ActionResult<{ url: string }>>
     };
   }
 
-  const supabase = await createClient();
-  const redirectTo = `${getAppUrl()}/auth/callback`;
+  try {
+    const supabase = await createClient();
+    const redirectTo = `${getAppUrl()}/auth/callback`;
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo,
-    },
-  });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+      },
+    });
 
-  if (error) {
-    console.error('signInWithGoogle error:', error.message);
-    return { error: error.message };
+    if (error) {
+      console.error('signInWithGoogle error:', error.message);
+      return { error: error.message };
+    }
+
+    return { data: { url: data.url! } };
+  } catch (e) {
+    console.error('signInWithGoogle unexpected error:', e);
+    return {
+      error:
+        'Unable to reach the authentication server. Please check your connection and try again.',
+    };
   }
-
-  return { data: { url: data.url! } };
 }
 
 /** Sign out and redirect to home */

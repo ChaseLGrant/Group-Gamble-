@@ -32,23 +32,33 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
     }
 
     setLoading(true);
-    const result = await signInWithEmail(email.trim().toLowerCase());
-    setLoading(false);
+    try {
+      const result = await signInWithEmail(email.trim().toLowerCase());
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setSent(true);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSent(true);
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleGoogle() {
     setGoogleLoading(true);
-    const result = await signInWithGoogle();
-    if (result.data?.url) {
-      window.location.href = result.data.url;
-    } else {
-      setError(result.error ?? 'Failed to start Google sign-in');
+    try {
+      const result = await signInWithGoogle();
+      if (result.data?.url) {
+        window.location.href = result.data.url;
+      } else {
+        setError(result.error ?? 'Failed to start Google sign-in');
+        setGoogleLoading(false);
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
       setGoogleLoading(false);
     }
   }
