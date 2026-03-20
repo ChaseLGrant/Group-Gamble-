@@ -71,17 +71,17 @@ export default async function LandingPage({ searchParams }: PageProps) {
             ))}
           </div>
 
-          {/* Auth form — premium card */}
+          {/* Auth — premium card */}
           <div className="card-premium p-6 animate-hero-slide-up [animation-delay:0.4s] opacity-0">
             <h2 className="text-lg font-bold mb-5 text-center text-zinc-100">
-              Get started — it&apos;s free
+              Jump in — it&apos;s free
             </h2>
             <AuthForm redirectTo={params.redirectTo} />
           </div>
 
           {/* Trust indicator */}
           <p className="text-center text-xs text-zinc-600 animate-hero-fade-in [animation-delay:0.6s] opacity-0">
-            No credit card required · 100% play money · Invite-only groups
+            100% play money · Invite-only groups
           </p>
         </div>
       </div>
