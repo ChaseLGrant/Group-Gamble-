@@ -155,3 +155,11 @@ export function safeJson<T>(str: string, fallback: T): T {
     return fallback;
   }
 }
+
+/** Phone validation regex: 7–15 digits with optional leading + */
+export const PHONE_REGEX = /^\+?\d{7,15}$/;
+
+/** Strip non-digit characters (except leading +) from a phone string */
+export function normalizePhone(raw: string): string {
+  return raw.trim().replace(/[^+\d]/g, '');
+}

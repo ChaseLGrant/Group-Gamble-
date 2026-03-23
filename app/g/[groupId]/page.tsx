@@ -10,6 +10,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 import ShareButton from './ShareButton';
 import BalanceBadge from './BalanceBadge';
+import AddMemberByPhone from '@/components/groups/AddMemberByPhone';
 
 interface PageProps {
   params: Promise<{ groupId: string }>;
@@ -61,6 +62,7 @@ export default async function GroupPage({ params }: PageProps) {
         right={
           <div className="flex items-center gap-2">
             <BalanceBadge balance={balance ?? 0} />
+            <AddMemberByPhone groupId={groupId} />
             <ShareButton inviteCode={group.invite_code} groupName={group.name} />
           </div>
         }

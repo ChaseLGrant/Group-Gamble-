@@ -18,6 +18,7 @@ interface SettingsFormProps {
 export default function SettingsForm({ profile, userEmail, isFirstLogin }: SettingsFormProps) {
   const router = useRouter();
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
+  const [phone, setPhone] = useState(profile?.phone ?? '');
   const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +35,7 @@ export default function SettingsForm({ profile, userEmail, isFirstLogin }: Setti
     }
 
     setSaving(true);
-    const result = await updateProfile(displayName.trim());
+    const result = await updateProfile(displayName.trim(), undefined, phone.trim() || undefined);
     setSaving(false);
 
     if (result.error) {
@@ -77,6 +78,15 @@ export default function SettingsForm({ profile, userEmail, isFirstLogin }: Setti
           maxLength={50}
           hint="Max 50 characters"
           error={error}
+        />
+
+        <Input
+          label="Phone Number"
+          type="tel"
+          placeholder="+1 555 123 4567"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          hint="So friends can add you to groups"
         />
 
         {saved && (
