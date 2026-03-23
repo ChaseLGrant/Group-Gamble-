@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { PHONE_REGEX, normalizePhone } from '@/lib/utils';
 import type { ActionResult, CreateGroupInput } from '@/lib/types';
 
 /**
@@ -319,8 +320,8 @@ export async function addMemberByPhone(
   if (!myMembership) return { error: 'You are not a member of this group' };
 
   // Normalize phone input
-  const normalized = phone.trim().replace(/[^+\d]/g, '');
-  if (!normalized || !/^\+?\d{7,15}$/.test(normalized)) {
+  const normalized = normalizePhone(phone);
+  if (!normalized || !PHONE_REGEX.test(normalized)) {
     return { error: 'Please enter a valid phone number' };
   }
 
@@ -334,7 +335,7 @@ export async function addMemberByPhone(
     .maybeSingle();
 
   if (lookupError) return { error: 'Failed to look up user' };
-  if (!targetProfile) return { error: 'No user found with that phone number. They need to add their phone number in Settings first.' };
+  if (!targetProfile) return { error: 'No user found with that phone number' };
 
   // Check if already a member
   const { data: existing } = await admin

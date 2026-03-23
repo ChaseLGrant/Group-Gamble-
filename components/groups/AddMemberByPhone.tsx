@@ -17,6 +17,12 @@ export default function AddMemberByPhone({ groupId }: AddMemberByPhoneProps) {
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
 
+  function handleCancel() {
+    setShowForm(false);
+    setError('');
+    setSuccess('');
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -61,7 +67,7 @@ export default function AddMemberByPhone({ groupId }: AddMemberByPhoneProps) {
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-zinc-100">Add Member by Phone</h3>
           <button
-            onClick={() => { setShowForm(false); setError(''); setSuccess(''); }}
+            onClick={handleCancel}
             className="text-zinc-500 hover:text-zinc-300 text-sm"
           >
             Cancel

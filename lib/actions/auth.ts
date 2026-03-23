@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { PHONE_REGEX, normalizePhone } from '@/lib/utils';
 import type { ActionResult } from '@/lib/types';
 
 /** Resolve the app URL, falling back to Vercel env vars then localhost */
@@ -107,8 +108,8 @@ export async function updateProfile(
   // Normalize phone: strip everything except digits and leading +
   let normalizedPhone: string | null = null;
   if (phone !== undefined && phone.trim()) {
-    normalizedPhone = phone.trim().replace(/[^+\d]/g, '');
-    if (normalizedPhone && !/^\+?\d{7,15}$/.test(normalizedPhone)) {
+    normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone && !PHONE_REGEX.test(normalizedPhone)) {
       return { error: 'Phone number must be 7–15 digits (optionally starting with +)' };
     }
   }
