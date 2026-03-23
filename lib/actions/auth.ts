@@ -23,13 +23,14 @@ async function verifySupabaseConnection(): Promise<string | null> {
 
   try {
     const response = await fetch(`${url}/auth/v1/health`, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(3000),
     });
     if (!response.ok) {
       return `Authentication service returned status ${response.status}. Please check your Supabase project configuration.`;
     }
     return null;
-  } catch {
+  } catch (e) {
+    console.error('Supabase connectivity check failed:', e);
     return `Unable to connect to the authentication service. Please verify that your Supabase project URL is correct and the project is not paused.`;
   }
 }
