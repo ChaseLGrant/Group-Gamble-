@@ -1,5 +1,7 @@
-import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { BrandHeader } from '@/components/layout/Header';
+import GetStartedButton from '@/components/auth/GetStartedButton';
 
 const FEATURES = [
   { emoji: '🎯', title: 'Create', text: 'Set prediction lines for your group' },
@@ -7,7 +9,20 @@ const FEATURES = [
   { emoji: '🏆', title: 'Win', text: 'Winner takes the pot — no real money' },
 ] as const;
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  /* If the user is already signed in, skip the landing page */
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) redirect('/app');
+  } catch (e: unknown) {
+    // Re-throw Next.js redirect
+    if (e instanceof Error && 'digest' in e && typeof (e as any).digest === 'string' && (e as any).digest.startsWith('NEXT_REDIRECT')) {
+      throw e;
+    }
+    // Supabase unavailable — continue showing landing page
+  }
+
   return (
     <main className="flex flex-col min-h-screen px-6 relative overflow-hidden">
       {/* Ambient background orbs */}
@@ -42,12 +57,7 @@ export default function LandingPage() {
             <h2 className="text-lg font-bold mb-5 text-center text-zinc-100">
               Jump in — it&apos;s free
             </h2>
-            <Link
-              href="/auth"
-              className="inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 select-none bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/30 h-14 px-6 text-lg gap-2 w-full"
-            >
-              Get Started
-            </Link>
+            <GetStartedButton />
           </div>
 
           {/* Trust indicator */}

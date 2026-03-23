@@ -1,7 +1,14 @@
 import AuthForm from '@/components/auth/AuthForm';
 import { BrandHeader } from '@/components/layout/Header';
 
-export default function AuthPage() {
+interface PageProps {
+  searchParams: Promise<{ redirect?: string }>;
+}
+
+export default async function AuthPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const redirectTo = params.redirect || '/app';
+
   return (
     <main className="flex flex-col min-h-screen px-6 relative overflow-hidden">
       {/* Ambient background orbs */}
@@ -18,7 +25,7 @@ export default function AuthPage() {
             <h2 className="text-lg font-bold mb-5 text-center text-zinc-100">
               Sign in to continue
             </h2>
-            <AuthForm />
+            <AuthForm redirectTo={redirectTo} />
           </div>
         </div>
       </div>

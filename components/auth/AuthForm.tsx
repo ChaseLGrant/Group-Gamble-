@@ -21,7 +21,7 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
     setGoogleLoading(true);
     setError('');
     try {
-      const result = await signInWithGoogle();
+      const result = await signInWithGoogle(redirectTo);
       if (result.data?.url) {
         window.location.href = result.data.url;
       } else {

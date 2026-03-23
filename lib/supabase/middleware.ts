@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/database.types';
 
 /** Routes that require an authenticated session */
-const PROTECTED_PREFIXES = ['/app', '/g/', '/settings'];
+const PROTECTED_PREFIXES = ['/app', '/g/', '/settings', '/invite'];
 
 /**
  * Refreshes the Supabase session in middleware.
@@ -56,7 +56,8 @@ export async function updateSession(request: NextRequest) {
 
     if (!user && isProtected) {
       const url = request.nextUrl.clone();
-      url.pathname = '/';
+      url.pathname = '/auth';
+      url.searchParams.set('redirect', pathname);
       return NextResponse.redirect(url);
     }
   } catch (e) {

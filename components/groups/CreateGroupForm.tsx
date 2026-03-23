@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { createGroup } from '@/lib/actions/groups';
@@ -15,7 +14,6 @@ export default function CreateGroupForm({ onSuccess }: { onSuccess?: (id: string
   const [emoji, setEmoji] = useState('🎲');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,15 +37,6 @@ export default function CreateGroupForm({ onSuccess }: { onSuccess?: (id: string
         router.push(`/g/${result.data.groupId}`);
       }
     }
-  }
-
-  if (!showForm) {
-    return (
-      <Button onClick={() => setShowForm(true)} size="lg">
-        <Plus size={20} />
-        Create a Group
-      </Button>
-    );
   }
 
   return (
@@ -90,19 +79,9 @@ export default function CreateGroupForm({ onSuccess }: { onSuccess?: (id: string
           autoFocus
         />
 
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            fullWidth
-            onClick={() => setShowForm(false)}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" fullWidth loading={loading}>
-            {emoji} Create
-          </Button>
-        </div>
+        <Button type="submit" fullWidth loading={loading}>
+          {emoji} Create Group
+        </Button>
       </form>
     </div>
   );

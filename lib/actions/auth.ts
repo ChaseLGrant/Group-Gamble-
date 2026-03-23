@@ -45,8 +45,8 @@ export async function signInWithEmail(email: string): Promise<ActionResult> {
   }
 }
 
-/** Sign in with Google OAuth */
-export async function signInWithGoogle(): Promise<ActionResult<{ url: string }>> {
+/** Sign in with Google OAuth. Pass an optional `next` path to redirect after auth. */
+export async function signInWithGoogle(next?: string): Promise<ActionResult<{ url: string }>> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return {
       error:
@@ -56,12 +56,15 @@ export async function signInWithGoogle(): Promise<ActionResult<{ url: string }>>
 
   try {
     const supabase = await createClient();
-    const redirectTo = `${getAppUrl()}/auth/callback`;
+    const callbackUrl = new URL(`${getAppUrl()}/auth/callback`);
+    if (next) {
+      callbackUrl.searchParams.set('next', next);
+    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
+        redirectTo: callbackUrl.toString(),
       },
     });
 
