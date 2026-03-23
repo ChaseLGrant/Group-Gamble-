@@ -13,6 +13,27 @@ function getAppUrl(): string {
   return 'http://localhost:3000';
 }
 
+/**
+ * Verify the Supabase project is reachable by hitting the auth health endpoint.
+ * Returns an error message if unreachable, or null if healthy.
+ */
+async function verifySupabaseConnection(): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return null; // Handled by the env-var check in callers
+
+  try {
+    const response = await fetch(`${url}/auth/v1/health`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) {
+      return `Authentication service returned status ${response.status}. Please check your Supabase project configuration.`;
+    }
+    return null;
+  } catch {
+    return `Unable to connect to the authentication service. Please verify that your Supabase project URL is correct and the project is not paused.`;
+  }
+}
+
 /** Send a magic link to the user's email */
 export async function signInWithEmail(email: string): Promise<ActionResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -21,6 +42,9 @@ export async function signInWithEmail(email: string): Promise<ActionResult> {
         'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.',
     };
   }
+
+  const connError = await verifySupabaseConnection();
+  if (connError) return { error: connError };
 
   try {
     const supabase = await createClient();
@@ -53,6 +77,9 @@ export async function signInWithGoogle(next?: string): Promise<ActionResult<{ ur
         'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.',
     };
   }
+
+  const connError = await verifySupabaseConnection();
+  if (connError) return { error: connError };
 
   try {
     const supabase = await createClient();
