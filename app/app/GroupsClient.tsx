@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, X } from 'lucide-react';
 import GroupCard from '@/components/groups/GroupCard';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
@@ -11,12 +12,13 @@ interface GroupsClientProps {
 }
 
 export default function GroupsClient({ initialGroups }: GroupsClientProps) {
-  const [groups, setGroups] = useState(initialGroups);
-  const [showCreate, setShowCreate] = useState(false);
+  const router = useRouter();
+  const [groups] = useState(initialGroups);
+  const hasGroups = groups.length > 0;
+  const [showCreate, setShowCreate] = useState(!hasGroups);
 
   function handleGroupCreated(id: string) {
-    // Navigation to /g/[id] happens in CreateGroupForm
-    setShowCreate(false);
+    router.push(`/g/${id}`);
   }
 
   return (
@@ -34,12 +36,14 @@ export default function GroupsClient({ initialGroups }: GroupsClientProps) {
         </Button>
       ) : (
         <div className="relative">
-          <button
-            onClick={() => setShowCreate(false)}
-            className="absolute -top-1 -right-1 z-10 bg-zinc-700 rounded-full p-1"
-          >
-            <X size={14} className="text-zinc-300" />
-          </button>
+          {hasGroups && (
+            <button
+              onClick={() => setShowCreate(false)}
+              className="absolute -top-1 -right-1 z-10 bg-zinc-700 rounded-full p-1"
+            >
+              <X size={14} className="text-zinc-300" />
+            </button>
+          )}
           <CreateGroupForm onSuccess={handleGroupCreated} />
         </div>
       )}
