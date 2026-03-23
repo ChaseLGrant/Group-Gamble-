@@ -2,9 +2,13 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/database.types';
 
+/** Routes that require an authenticated session */
+const PROTECTED_PREFIXES = ['/app', '/g/', '/settings'];
+
 /**
  * Refreshes the Supabase session in middleware.
  * Must be called on every request to keep the session alive.
+ * Redirects unauthenticated users away from protected routes.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -46,6 +50,15 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    // Redirect unauthenticated users away from protected routes
+    const { pathname } = request.nextUrl;
+    const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+
+    if (!user && isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
   } catch (e) {
     console.error('Middleware session refresh error:', e);
   }

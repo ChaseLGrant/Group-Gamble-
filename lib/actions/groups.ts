@@ -293,3 +293,77 @@ export async function promoteMember(
   revalidatePath(`/g/${groupId}`);
   return {};
 }
+
+/**
+ * Add a member to a group by their phone number.
+ * The target user must have set a phone number in their profile.
+ */
+export async function addMemberByPhone(
+  groupId: string,
+  phone: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  // Verify current user is a member of the group
+  const { data: myMembership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (!myMembership) return { error: 'You are not a member of this group' };
+
+  // Normalize phone input
+  const normalized = phone.trim().replace(/[^+\d]/g, '');
+  if (!normalized || !/^\+?\d{7,15}$/.test(normalized)) {
+    return { error: 'Please enter a valid phone number' };
+  }
+
+  const admin = createAdminClient();
+
+  // Look up the user by phone number
+  const { data: targetProfile, error: lookupError } = await admin
+    .from('profiles')
+    .select('id, display_name')
+    .eq('phone', normalized)
+    .maybeSingle();
+
+  if (lookupError) return { error: 'Failed to look up user' };
+  if (!targetProfile) return { error: 'No user found with that phone number. They need to add their phone number in Settings first.' };
+
+  // Check if already a member
+  const { data: existing } = await admin
+    .from('group_members')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('user_id', targetProfile.id)
+    .maybeSingle();
+
+  if (existing) return { error: `${targetProfile.display_name} is already in this group` };
+
+  // Add membership
+  const { error: memberError } = await admin.from('group_members').insert({
+    group_id: groupId,
+    user_id: targetProfile.id,
+    role: 'member',
+  });
+
+  if (memberError) return { error: memberError.message };
+
+  // Initialize balance
+  const { error: balanceError } = await admin.from('group_balances').insert({
+    group_id: groupId,
+    user_id: targetProfile.id,
+    balance_points: 1000,
+  });
+
+  if (balanceError) return { error: balanceError.message };
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}

@@ -86,7 +86,8 @@ export async function signOut(): Promise<void> {
 /** Update the current user's profile */
 export async function updateProfile(
   displayName: string,
-  avatarUrl?: string
+  avatarUrl?: string,
+  phone?: string
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
@@ -103,12 +104,22 @@ export async function updateProfile(
     return { error: 'Display name must be 1–50 characters' };
   }
 
+  // Normalize phone: strip everything except digits and leading +
+  let normalizedPhone: string | null = null;
+  if (phone !== undefined && phone.trim()) {
+    normalizedPhone = phone.trim().replace(/[^+\d]/g, '');
+    if (normalizedPhone && !/^\+?\d{7,15}$/.test(normalizedPhone)) {
+      return { error: 'Phone number must be 7–15 digits (optionally starting with +)' };
+    }
+  }
+
   const { error } = await supabase
     .from('profiles')
     .upsert({
       id: user.id,
       display_name: trimmed,
       ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+      ...(phone !== undefined ? { phone: normalizedPhone } : {}),
     })
     .eq('id', user.id);
 
