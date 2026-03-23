@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SettingsForm from './SettingsForm';
 import Header from '@/components/layout/Header';
@@ -9,20 +8,27 @@ interface PageProps {
 }
 
 export default async function SettingsPage({ searchParams }: PageProps) {
-  const supabase = await createClient();
   const params = await searchParams;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string; email?: string } | null = null;
+  let profile: any = null;
 
-  if (!user) redirect('/');
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+    if (user) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      profile = profileData;
+    }
+  } catch {
+    // If Supabase is unavailable, continue with null user/profile
+  }
 
   const isFirstLogin = params.firstLogin === 'true';
 
@@ -44,7 +50,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
 
         <SettingsForm
           profile={profile}
-          userEmail={user.email}
+          userEmail={user?.email}
           isFirstLogin={isFirstLogin}
         />
       </main>

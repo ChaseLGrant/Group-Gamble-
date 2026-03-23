@@ -1,20 +1,15 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { getUserGroups } from '@/lib/actions/groups';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 import GroupsClient from './GroupsClient';
 
 export default async function AppHomePage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect('/');
-
-  const groups = await getUserGroups();
+  let groups: Awaited<ReturnType<typeof getUserGroups>> = [];
+  try {
+    groups = await getUserGroups();
+  } catch {
+    // If fetching groups fails (e.g. no auth), show empty list
+  }
 
   return (
     <div className="flex flex-col min-h-screen">

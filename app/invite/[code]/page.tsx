@@ -9,26 +9,45 @@ interface PageProps {
 
 export default async function InvitePage({ params }: PageProps) {
   const { code } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  let group: { id: string; name: string; emoji: string } | null = null;
 
-  // Not logged in? Redirect to landing with intent to join
-  if (!user) {
-    redirect(`/?redirectTo=/invite/${code}`);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+
+    // Find the group by invite code (preview before joining)
+    const { data: groupData } = await supabase
+      .from('groups')
+      .select('id, name, emoji')
+      .eq('invite_code', code.toUpperCase())
+      .single();
+    group = groupData;
+
+    // Check if already a member
+    if (user && group) {
+      const { data: existing } = await supabase
+        .from('group_members')
+        .select('id')
+        .eq('group_id', group.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        redirect(`/g/${group.id}`);
+      }
+    }
+  } catch (e: unknown) {
+    // If the error is a Next.js redirect, re-throw it
+    if (e instanceof Error && 'digest' in e && typeof (e as any).digest === 'string' && (e as any).digest.startsWith('NEXT_REDIRECT')) {
+      throw e;
+    }
+    // Otherwise continue rendering
   }
 
-  // Find the group by invite code (preview before joining)
-  const { data: group } = await supabase
-    .from('groups')
-    .select('id, name, emoji')
-    .eq('invite_code', code.toUpperCase())
-    .single();
-
   if (!group) {
-    // Invalid code — show error
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center gap-4">
         <div className="text-5xl">❌</div>
@@ -37,19 +56,6 @@ export default async function InvitePage({ params }: PageProps) {
         <a href="/app" className="text-violet-400 underline">Go to my groups</a>
       </div>
     );
-  }
-
-  // Check if already a member
-  const { data: existing } = await supabase
-    .from('group_members')
-    .select('id')
-    .eq('group_id', group.id)
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (existing) {
-    // Already a member — redirect straight to the group
-    redirect(`/g/${group.id}`);
   }
 
   return (

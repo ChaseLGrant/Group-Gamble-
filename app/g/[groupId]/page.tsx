@@ -1,6 +1,6 @@
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Share2, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getGroup } from '@/lib/actions/groups';
 import { getGroupPredictions } from '@/lib/actions/predictions';
@@ -17,23 +17,31 @@ interface PageProps {
 
 export default async function GroupPage({ params }: PageProps) {
   const { groupId } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Continue without auth
+  }
 
-  if (!user) redirect('/');
-
-  // Verify membership and get group
-  const { data: membership } = await supabase
-    .from('group_members')
-    .select('role')
-    .eq('group_id', groupId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (!membership) notFound();
+  let membership: { role: string } | null = null;
+  if (user) {
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .single();
+      membership = data;
+    } catch {
+      // Continue without membership
+    }
+  }
 
   const [group, predictions, balance] = await Promise.all([
     getGroup(groupId),
@@ -43,7 +51,7 @@ export default async function GroupPage({ params }: PageProps) {
 
   if (!group) notFound();
 
-  const isAdmin = ['owner', 'moderator'].includes(membership.role);
+  const isAdmin = membership ? ['owner', 'moderator'].includes(membership.role) : false;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -62,7 +70,7 @@ export default async function GroupPage({ params }: PageProps) {
         <PredictionFeed
           groupId={groupId}
           initialPredictions={predictions}
-          currentUserId={user.id}
+          currentUserId={user?.id ?? ''}
           isAdmin={isAdmin}
         />
       </main>
