@@ -40,7 +40,8 @@ export default function AuthForm({ redirectTo }: AuthFormProps) {
       {!supabaseConfigured && (
         <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-3 text-yellow-400 text-xs text-center">
           ⚠️ Supabase is not configured. Set <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
-          <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your <code className="font-mono">.env.local</code> file.
+          <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your Vercel project settings
+          (or <code className="font-mono">.env.local</code> for local development).
         </div>
       )}
 

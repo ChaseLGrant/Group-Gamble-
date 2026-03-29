@@ -9,12 +9,22 @@ import type { Database } from '@/lib/database.types';
  * NEVER expose this client or the service role key to the browser.
  */
 export function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    throw new Error(
+      'NEXT_PUBLIC_SUPABASE_URL is not set. Add it to your Vercel project settings (or .env.local for local development).'
+    );
+  }
+
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is not set. Add it to your Vercel project settings (or .env.local for local development).'
+    );
   }
 
   return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
       auth: {
